@@ -219,6 +219,9 @@ public class NioEventLoopGroup extends EventLoopGroup {
 
     public void setWriteBuffers(int writeBuffers) {
         checkNotRunning();
+        if (writeBuffers > Byte.MAX_VALUE) {
+            throw new RuntimeException("max write buffer size: " + Byte.MAX_VALUE);
+        }
         this.writeBuffers = writeBuffers;
     }
 

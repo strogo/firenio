@@ -75,12 +75,12 @@ public abstract class Channel implements Runnable, Closeable {
     protected final    SSLEngine      ssl_engine;
     protected final    Queue<ByteBuf> write_bufs;
     protected final    Integer        channelId;
-    protected final    int            localPort;
+    protected final    short          localPort;
     protected final    String         remoteAddr;
-    protected final    int            remotePort;
+    protected final    short          remotePort;
     protected          Object         attachment;
     protected          ProtocolCodec  codec;
-    protected          int            current_wbs_len;
+    protected          byte           current_wbs_len;
     protected          boolean        in_event;
     protected          long           last_access;
     protected volatile boolean        open          = true;
@@ -91,8 +91,8 @@ public abstract class Channel implements Runnable, Closeable {
 
     Channel(NioEventLoop el, ChannelContext ctx, String ra, int lp, int rp, Integer id) {
         this.remoteAddr = ra;
-        this.localPort = lp;
-        this.remotePort = rp;
+        this.localPort = (short) lp;
+        this.remotePort = (short) rp;
         this.channelId = id;
         this.context = ctx;
         this.eventLoop = el;
@@ -412,7 +412,7 @@ public abstract class Channel implements Runnable, Closeable {
     }
 
     public int getLocalPort() {
-        return localPort;
+        return localPort & 0xffff;
     }
 
     public abstract int getOption(int name) throws IOException;
@@ -422,7 +422,7 @@ public abstract class Channel implements Runnable, Closeable {
     }
 
     public int getRemotePort() {
-        return remotePort;
+        return remotePort & 0xffff;
     }
 
     public SSLEngine getSSLEngine() {
@@ -1067,7 +1067,7 @@ public abstract class Channel implements Runnable, Closeable {
                             System.arraycopy(cwb_array, i, cwb_array, 0, remain);
                             fill_null(cwb_array, remain, cw_len);
                             this.interestWrite = true;
-                            this.current_wbs_len = remain;
+                            this.current_wbs_len = (byte) remain;
                             return 0;
                         } else {
                             len -= r;
@@ -1240,7 +1240,7 @@ public abstract class Channel implements Runnable, Closeable {
                             fill_null(cwb_array, remain, cwb_len);
                             fill_null(wb_array, i, cwb_len);
                             interestWrite();
-                            this.current_wbs_len = remain;
+                            this.current_wbs_len = (byte) remain;
                             return 0;
                         } else {
                             wb_array[i] = null;
