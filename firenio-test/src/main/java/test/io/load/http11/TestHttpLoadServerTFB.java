@@ -41,6 +41,7 @@ import com.firenio.log.LoggerFactory;
 import com.jsoniter.output.JsonStream;
 import com.jsoniter.output.JsonStreamPool;
 import com.jsoniter.spi.JsonException;
+import com.jsoniter.spi.Slice;
 
 /**
  * @author wangkai
@@ -146,7 +147,6 @@ public class TestHttpLoadServerTFB {
             @Override
             public void channelOpened(Channel ch) throws Exception {
                 ch.setOption(SocketOptions.TCP_NODELAY, 1);
-                ch.setOption(SocketOptions.TCP_QUICKACK, 1);
                 ch.setOption(SocketOptions.SO_KEEPALIVE, 0);
             }
         });
@@ -159,7 +159,8 @@ public class TestHttpLoadServerTFB {
         try {
             stream.reset(null);
             stream.writeVal(Message.class, obj);
-            return Arrays.copyOfRange(stream.buffer().data(), 0, stream.buffer().tail());
+            Slice slice = stream.buffer();
+            return Arrays.copyOfRange(slice.data(), 0, slice.tail());
         } catch (IOException e) {
             throw new JsonException(e);
         } finally {

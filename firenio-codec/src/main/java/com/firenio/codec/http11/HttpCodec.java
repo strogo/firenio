@@ -22,8 +22,11 @@ import java.util.Map;
 
 import com.firenio.Develop;
 import com.firenio.buffer.ByteBuf;
+import com.firenio.collection.AttributeKey;
+import com.firenio.collection.AttributeMap;
 import com.firenio.collection.ByteTree;
 import com.firenio.collection.IntMap;
+import com.firenio.collection.Stack;
 import com.firenio.common.ByteUtil;
 import com.firenio.common.Util;
 import com.firenio.component.Channel;
@@ -37,21 +40,19 @@ import com.firenio.component.ProtocolCodec;
  */
 public class HttpCodec extends ProtocolCodec {
 
-    static final byte[]      CONTENT_LENGTH_MATCH      = ByteUtil.b("Content-Length:");
-    static final int         decode_state_body         = 2;
-    static final int         decode_state_complete     = 3;
-    static final int         decode_state_header       = 1;
-    static final int         decode_state_line_one     = 0;
-    static final int         encode_bytes_arrays_index = nextIndexedVariablesIndex();
-    static final int         content_len_index         = nextIndexedVariablesIndex();
-    static final String      FRAME_CACHE_KEY           = "_HTTP_FRAME_CACHE_KEY";
-    static final byte        N                         = '\n';
-    static final IOException OVER_LIMIT                = EXCEPTION("over writeIndex");
-    static final IOException ILLEGAL_METHOD            = EXCEPTION("illegal http method");
-    static final byte        R                         = '\r';
-    static final byte        SPACE                     = ' ';
-    static final int         NUM_GET                   = ByteUtil.getInt("GET ".getBytes(), 0);
-    static final int         NUM_POST                  = ByteUtil.getInt("POST".getBytes(), 0);
+    static final byte[]                      CONTENT_LENGTH_MATCH  = ByteUtil.b("Content-Length:");
+    static final int                         decode_state_body     = 2;
+    static final int                         decode_state_complete = 3;
+    static final int                         decode_state_header   = 1;
+    static final int                         decode_state_line_one = 0;
+    static final AttributeKey<Stack<Object>> FRAME_CACHE_KEY       = nio_el_key("http_frame_cache_key");
+    static final byte                        N                     = '\n';
+    static final IOException                 OVER_LIMIT            = EXCEPTION("over writeIndex");
+    static final IOException                 ILLEGAL_METHOD        = EXCEPTION("illegal http method");
+    static final byte                        R                     = '\r';
+    static final byte                        SPACE                 = ' ';
+    static final int                         NUM_GET               = ByteUtil.getInt("GET ".getBytes(), 0);
+    static final int                         NUM_POST              = ByteUtil.getInt("POST".getBytes(), 0);
 
     private final int        blimit;
     private final byte[][]   cl_bytes = new byte[1024][];
@@ -159,11 +160,6 @@ public class HttpCodec extends ProtocolCodec {
         } else {
             f.setRequestURL((String) line.subSequence(skip, lastSpace));
         }
-    }
-
-    @SuppressWarnings("unchecked")
-    static List<byte[]> getEncodeBytesArray(FastThreadLocal l) {
-        return (List<byte[]>) l.getList(encode_bytes_arrays_index);
     }
 
     private static int read_line(StringBuilder line, ByteBuf src, int abs_pos, int length, int limit) throws IOException {
@@ -424,25 +420,13 @@ public class HttpCodec extends ProtocolCodec {
         }
     }
 
-    private byte[] get_c_len_buf(FastThreadLocal l) {
-        byte[] bb = (byte[]) l.getIndexedVariable(content_len_index);
-        if (bb == null) {
-            int limit = cl_buf.limit();
-            bb = new byte[cl_buf.limit() + 16];
-            cl_buf.get(bb, 0, limit);
-            cl_buf.clear().limit(limit);
-            l.setIndexedVariable(content_len_index, bb);
-        }
-        return bb;
-    }
-
     @Override
     public ByteBuf encode(final Channel ch, Frame frame) {
         boolean         inline        = this.inline;
         HttpFrame       f             = (HttpFrame) frame;
         FastThreadLocal l             = FastThreadLocal.get();
         HttpAttachment  att           = (HttpAttachment) ch.getAttachment();
-        List<byte[]>    bytes_array   = getEncodeBytesArray(l);
+        List<byte[]>    bytes_array   = (List<byte[]>) l.getList();
         Object          content       = f.getContent();
         ByteBuf         content_buf   = null;
         byte[]          content_array = null;
@@ -466,7 +450,7 @@ public class HttpCodec extends ProtocolCodec {
             cl_len_bytes = cl_bytes[write_size];
             cl_len = cl_len_bytes.length;
         } else {
-            cl_len_bytes = get_c_len_buf(l);
+            cl_len_bytes = l.getBytes32();
             int tmp_len = cl_buf.limit();
             int len_idx = Util.valueOf(write_size, cl_len_bytes);
             int num_len = cl_len_bytes.length - len_idx;
@@ -619,6 +603,10 @@ public class HttpCodec extends ProtocolCodec {
     @Override
     protected Object newAttachment() {
         return new HttpAttachment();
+    }
+
+    private static AttributeKey ftl_key(String name) {
+        return AttributeMap.valueOfKey(FastThreadLocal.class, name);
     }
 
 }

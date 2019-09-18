@@ -39,6 +39,7 @@ import com.firenio.Develop;
 import com.firenio.Releasable;
 import com.firenio.buffer.ByteBuf;
 import com.firenio.buffer.ByteBufAllocator;
+import com.firenio.collection.AttributeMap;
 import com.firenio.common.Unsafe;
 import com.firenio.common.Util;
 import com.firenio.component.NioEventLoop.EpollEventLoop;
@@ -52,7 +53,7 @@ import static com.firenio.common.Util.unknownStackTrace;
 
 
 //请勿使用remote.getRemoteHost(),可能出现阻塞
-public abstract class Channel implements Runnable, Closeable {
+public abstract class Channel extends AttributeMap implements Runnable, Closeable {
 
     public static final InetSocketAddress ERROR_SOCKET_ADDRESS  = new InetSocketAddress(0);
     public static final Logger            logger                = NEW_LOGGER();

@@ -15,21 +15,31 @@
  */
 package com.firenio.collection;
 
-import java.util.Map;
-import java.util.Set;
+/**
+ * @author: wangkai
+ **/
+public final class AttributeKey<T> {
 
-public interface Attributes {
+    private final int index;
 
-    Map<Object, Object> attributes();
+    private final String name;
 
-    void clearAttributes();
+    public AttributeKey(int index, String name) {
+        this.index = index;
+        this.name = name;
+    }
 
-    Object getAttribute(Object key);
+    public int getIndex() {
+        return index;
+    }
 
-    Set<Object> getAttributeNames();
+    public String getName() {
+        return name;
+    }
 
-    Object removeAttribute(Object key);
-
-    void setAttribute(Object key, Object value);
+    @Override
+    public String toString() {
+        return "name: " + name + ", index: " + index;
+    }
 
 }

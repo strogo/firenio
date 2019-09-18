@@ -18,6 +18,8 @@ package com.firenio.component;
 import java.io.IOException;
 
 import com.firenio.buffer.ByteBuf;
+import com.firenio.collection.AttributeKey;
+import com.firenio.collection.AttributeMap;
 import com.firenio.common.Util;
 import com.firenio.concurrent.EventLoop;
 
@@ -60,10 +62,6 @@ public abstract class ProtocolCodec {
         return EXCEPTION(clazz, method, msg);
     }
 
-    protected static int nextIndexedVariablesIndex() {
-        return FastThreadLocal.nextIndexedVariablesIndex();
-    }
-
     // 可能会遭受一种攻击，比如最大可接收数据为100，客户端传输到99后暂停，
     // 这样多次以后可能会导致内存溢出
     public abstract Frame decode(Channel ch, ByteBuf src) throws Exception;
@@ -91,6 +89,10 @@ public abstract class ProtocolCodec {
         } else {
             // 该channel无需心跳,比如HTTP协议
         }
+    }
+
+    protected static AttributeKey nio_el_key(String name) {
+        return AttributeMap.valueOfKey(NioEventLoop.class, name);
     }
 
     protected void log_ping_from(Channel ch) {

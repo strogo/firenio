@@ -29,10 +29,8 @@ import java.security.AccessController;
 import java.security.PrivilegedAction;
 import java.util.AbstractSet;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -43,7 +41,8 @@ import com.firenio.Options;
 import com.firenio.buffer.ByteBuf;
 import com.firenio.buffer.ByteBufAllocator;
 import com.firenio.collection.ArrayListStack;
-import com.firenio.collection.Attributes;
+import com.firenio.collection.AttributeKey;
+import com.firenio.collection.AttributeMap;
 import com.firenio.collection.DelayedQueue;
 import com.firenio.collection.IntMap;
 import com.firenio.collection.LinkedBQStack;
@@ -64,7 +63,7 @@ import static com.firenio.Develop.debugException;
 /**
  * @author wangkai
  */
-public abstract class NioEventLoop extends EventLoop implements Attributes {
+public abstract class NioEventLoop extends EventLoop {
 
     static final boolean     CHANNEL_READ_FIRST = Options.isChannelReadFirst();
     static final Logger      logger             = NEW_LOGGER();
@@ -73,8 +72,8 @@ public abstract class NioEventLoop extends EventLoop implements Attributes {
     static final boolean     USE_HAS_TASK       = true;
 
     final    ByteBufAllocator        alloc;
-    final    Map<Object, Object>     attributes    = new HashMap<>();
     final    ByteBuf                 buf;
+    final    AttributeMap            attributeMap  = new AttributeMap();
     final    IntMap<Channel>         channels      = new IntMap<>(4096);
     final    int                     ch_size_limit;
     final    DelayedQueue            delayed_queue = new DelayedQueue();
@@ -180,11 +179,6 @@ public abstract class NioEventLoop extends EventLoop implements Attributes {
         return alloc;
     }
 
-    @Override
-    public Map<Object, Object> attributes() {
-        return attributes;
-    }
-
     //FIXME ..optimize sharable group
     private void channel_idle(long last_idle_time, long current_time) {
         IntMap<Channel> channels = this.channels;
@@ -196,11 +190,6 @@ public abstract class NioEventLoop extends EventLoop implements Attributes {
         } else {
             channel_idle(group.getContext(), channels, last_idle_time, current_time);
         }
-    }
-
-    @Override
-    public void clearAttributes() {
-        this.attributes.clear();
     }
 
     private void close_channels() {
@@ -215,23 +204,16 @@ public abstract class NioEventLoop extends EventLoop implements Attributes {
         return buf_address;
     }
 
-    @Override
-    public Object getAttribute(Object key) {
-        return this.attributes.get(key);
-    }
-
-    @Override
-    public Set<Object> getAttributeNames() {
-        return this.attributes.keySet();
+    public <T> T getAttribute(AttributeKey<T> key) {
+        return attributeMap.getValue(key);
     }
 
     public Channel getChannel(int channelId) {
         return channels.get(channelId);
     }
 
-    @SuppressWarnings("unchecked")
-    private Stack<Object> get_cache0(String key, int max) {
-        Stack<Object> cache = (Stack<Object>) getAttribute(key);
+    private Stack<Object> get_cache0(AttributeKey<Stack<Object>> key, int max) {
+        Stack<Object> cache = getAttribute(key);
         if (cache == null) {
             if (group.isConcurrentFrameStack()) {
                 cache = new LinkedBQStack<>(max);
@@ -243,7 +225,7 @@ public abstract class NioEventLoop extends EventLoop implements Attributes {
         return cache;
     }
 
-    public Object getCache(String key, int max) {
+    public Object getCache(AttributeKey<Stack<Object>> key, int max) {
         return get_cache0(key, max).pop();
     }
 
@@ -265,17 +247,15 @@ public abstract class NioEventLoop extends EventLoop implements Attributes {
         return buf;
     }
 
-    @SuppressWarnings("unchecked")
-    public void release(String key, Object obj) {
-        Stack<Object> buffer = (Stack<Object>) getAttribute(key);
+    public void release(AttributeKey<Stack<Object>> key, Object obj) {
+        Stack<Object> buffer = getAttribute(key);
         if (buffer != null) {
             buffer.push(obj);
         }
     }
 
-    @Override
-    public Object removeAttribute(Object key) {
-        return this.attributes.remove(key);
+    public AttributeMap getAttributeMap() {
+        return attributeMap;
     }
 
     protected void removeChannel(int id) {
@@ -436,9 +416,8 @@ public abstract class NioEventLoop extends EventLoop implements Attributes {
         }
     }
 
-    @Override
-    public void setAttribute(Object key, Object value) {
-        this.attributes.put(key, value);
+    public void setAttribute(AttributeKey key, Object value) {
+        this.attributeMap.setValue(key, value);
     }
 
     public boolean submit(Runnable event) {
