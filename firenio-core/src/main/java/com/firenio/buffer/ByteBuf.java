@@ -701,6 +701,22 @@ public abstract class ByteBuf implements Releasable {
         return absWriteIndex() - absReadIndex();
     }
 
+    public void reset(byte[] memory) {
+        reset(memory, 0, memory.length);
+    }
+
+    public void reset(byte[] memory, int off, int len) {
+        throw unsupportedOperationException();
+    }
+
+    public void reset(long memory, int capacity, int off, int len) {
+        throw unsupportedOperationException();
+    }
+
+    public void reset(ByteBuffer memory) {
+        throw unsupportedOperationException();
+    }
+
     public int writableBytes() {
         return capacity() - writeIndex();
     }

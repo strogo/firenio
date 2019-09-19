@@ -131,4 +131,8 @@ public final class FastThreadLocal extends AttributeMap {
         return map;
     }
 
+    @Override
+    protected AttributeKeys getKeys() {
+        return getKeys(FastThreadLocal.class);
+    }
 }

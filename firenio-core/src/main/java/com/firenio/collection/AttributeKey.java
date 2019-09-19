@@ -15,6 +15,8 @@
  */
 package com.firenio.collection;
 
+import com.firenio.collection.AttributeMap.AttributeInitFunction;
+
 /**
  * @author: wangkai
  **/
@@ -24,9 +26,12 @@ public final class AttributeKey<T> {
 
     private final String name;
 
-    public AttributeKey(int index, String name) {
-        this.index = index;
+    private final AttributeInitFunction<T> function;
+
+    AttributeKey(int index, String name, AttributeInitFunction<T> function) {
         this.name = name;
+        this.index = index;
+        this.function = function;
     }
 
     public int getIndex() {
@@ -35,6 +40,10 @@ public final class AttributeKey<T> {
 
     public String getName() {
         return name;
+    }
+
+    public AttributeInitFunction<T> getFunction() {
+        return function;
     }
 
     @Override

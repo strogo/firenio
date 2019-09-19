@@ -73,7 +73,7 @@ public abstract class NioEventLoop extends EventLoop {
 
     final    ByteBufAllocator        alloc;
     final    ByteBuf                 buf;
-    final    AttributeMap            attributeMap  = new AttributeMap();
+    final    AttributeMap            attributeMap  = new NioELAttributeMap();
     final    IntMap<Channel>         channels      = new IntMap<>(4096);
     final    int                     ch_size_limit;
     final    DelayedQueue            delayed_queue = new DelayedQueue();
@@ -1016,6 +1016,15 @@ public abstract class NioEventLoop extends EventLoop {
         @Override
         void wakeup0() {
             Native.event_fd_write(event_fd, 1L);
+        }
+
+    }
+
+    static class NioELAttributeMap extends AttributeMap {
+
+        @Override
+        protected AttributeKeys getKeys() {
+            return getKeys(NioEventLoop.class);
         }
 
     }

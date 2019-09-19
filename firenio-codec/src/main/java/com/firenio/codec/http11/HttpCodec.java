@@ -56,6 +56,7 @@ public class HttpCodec extends ProtocolCodec {
 
     private final int        blimit;
     private final byte[][]   cl_bytes = new byte[1024][];
+    private final int        com_threshold;
     private final int        hlimit;
     private final int        fcache;
     private final boolean    lite;
@@ -80,20 +81,21 @@ public class HttpCodec extends ProtocolCodec {
     }
 
     public HttpCodec(String server, int frameCache, boolean lite, boolean inline) {
-        this(server, frameCache, 1024 * 8, 1024 * 256, lite, inline, null);
+        this(server, frameCache, 1024 * 8, 1024 * 256, 1024 * 4, lite, inline, null);
     }
 
     public HttpCodec(String server, int frameCache, boolean lite, boolean inline, ByteTree cachedUrls) {
-        this(server, frameCache, 1024 * 8, 1024 * 256, lite, inline, cachedUrls);
+        this(server, frameCache, 1024 * 8, 1024 * 256, 1024 * 4, lite, inline, cachedUrls);
     }
 
-    public HttpCodec(String server, int fcache, int hlimit, int blimit, boolean lite, boolean inline, ByteTree cachedUrls) {
+    public HttpCodec(String server, int fcache, int hlimit, int blimit, int com_threshold, boolean lite, boolean inline, ByteTree cachedUrls) {
         this.lite = lite;
         this.inline = inline;
         this.hlimit = hlimit;
         this.blimit = blimit;
         this.fcache = fcache;
         this.cached_urls = cachedUrls;
+        this.com_threshold = com_threshold;
         ByteBuffer temp = ByteBuffer.allocate(128);
         if (server == null) {
             temp.put(ByteUtil.b("\r\nContent-Length: "));
@@ -438,7 +440,7 @@ public class HttpCodec extends ProtocolCodec {
         int             write_size    = 0;
         if (content instanceof ByteBuf) {
             content_buf = ((ByteBuf) content);
-            write_size = content_buf.writeIndex();
+            write_size = content_buf.readableBytes();
         } else if (content instanceof byte[]) {
             is_array = true;
             content_array = (byte[]) content;
@@ -516,15 +518,23 @@ public class HttpCodec extends ProtocolCodec {
         buf.writeByte(R);
         buf.writeByte(N);
         if (write_size > 0) {
-            if (is_array) {
-                buf.writeBytes(content_array);
-            } else {
+            if (write_size > com_threshold) {
+                if (is_array) {
+                    buf.writeBytes(content_array);
+                    content_buf = ByteBuf.wrap(content_array);
+                }
                 if (inline) {
                     att.setLastWriteBuf(ByteBuf.empty());
                 }
                 ch.write(buf);
                 ch.write(content_buf);
                 return null;
+            } else {
+                if (is_array) {
+                    buf.writeBytes(content_array);
+                } else {
+                    buf.writeBytes(content_buf);
+                }
             }
         }
         return offer ? buf : null;
@@ -603,10 +613,6 @@ public class HttpCodec extends ProtocolCodec {
     @Override
     protected Object newAttachment() {
         return new HttpAttachment();
-    }
-
-    private static AttributeKey ftl_key(String name) {
-        return AttributeMap.valueOfKey(FastThreadLocal.class, name);
     }
 
 }

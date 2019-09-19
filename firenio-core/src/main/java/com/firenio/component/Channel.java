@@ -958,6 +958,11 @@ public abstract class Channel extends AttributeMap implements Runnable, Closeabl
         flush();
     }
 
+    @Override
+    protected AttributeKeys getKeys() {
+        return getKeys(Channel.class);
+    }
+
     abstract boolean isInterestWrite();
 
     abstract int native_read(ByteBuf dst);
