@@ -15,9 +15,6 @@
  */
 package test.io.load.http11;
 
-import java.io.IOException;
-import java.util.Arrays;
-
 import com.firenio.Options;
 import com.firenio.buffer.ByteBuf;
 import com.firenio.codec.http11.HttpCodec;
@@ -44,7 +41,6 @@ import com.firenio.log.DebugUtil;
 import com.firenio.log.LoggerFactory;
 import com.jsoniter.output.JsonStream;
 import com.jsoniter.output.JsonStreamPool;
-import com.jsoniter.spi.JsonException;
 import com.jsoniter.spi.Slice;
 
 /**
@@ -109,8 +105,6 @@ public class TestHttpLoadServerTFB {
                         f.setDate(HttpDateUtil.getDateLine());
                         ch.writeAndFlush(f);
                         ch.release(f);
-                    } catch (IOException e) {
-                        throw new JsonException(e);
                     } finally {
                         JsonStreamPool.returnJsonStream(stream);
                     }
@@ -173,20 +167,6 @@ public class TestHttpLoadServerTFB {
         });
         context.setIoEventHandle(eventHandle);
         context.bind();
-    }
-
-    private static byte[] serializeMsg(Message obj) {
-        JsonStream stream = JsonStreamPool.borrowJsonStream();
-        try {
-            stream.reset(null);
-            stream.writeVal(Message.class, obj);
-            Slice slice = stream.buffer();
-            return Arrays.copyOfRange(slice.data(), 0, slice.tail());
-        } catch (IOException e) {
-            throw new JsonException(e);
-        } finally {
-            JsonStreamPool.returnJsonStream(stream);
-        }
     }
 
     static AttributeKey<ByteBuf> newByteBufKey() {

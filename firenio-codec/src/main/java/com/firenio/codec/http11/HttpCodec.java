@@ -452,7 +452,7 @@ public class HttpCodec extends ProtocolCodec {
             cl_len_bytes = cl_bytes[write_size];
             cl_len = cl_len_bytes.length;
         } else {
-            cl_len_bytes = l.getBytes32();
+            cl_len_bytes = cl_buf.array();
             int tmp_len = cl_buf.limit();
             int len_idx = Util.valueOf(write_size, cl_len_bytes);
             int num_len = cl_len_bytes.length - len_idx;
@@ -527,13 +527,14 @@ public class HttpCodec extends ProtocolCodec {
                     att.setLastWriteBuf(ByteBuf.empty());
                 }
                 ch.write(buf);
-                ch.write(content_buf);
+                ch.writeAndFlush(content_buf);
                 return null;
             } else {
                 if (is_array) {
                     buf.writeBytes(content_array);
                 } else {
                     buf.writeBytes(content_buf);
+                    content_buf.release();
                 }
             }
         }
