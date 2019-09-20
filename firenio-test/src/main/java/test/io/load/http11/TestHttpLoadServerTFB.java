@@ -170,9 +170,7 @@ public class TestHttpLoadServerTFB {
     }
 
     static AttributeKey<ByteBuf> newByteBufKey() {
-        return AttributeMap.valueOfKey(FastThreadLocal.class, "JSON_BUF", () -> {
-            return ByteBuf.heap(0);
-        });
+        return AttributeMap.valueOfKey(FastThreadLocal.class, "JSON_BUF", () -> ByteBuf.heap(0));
     }
 
     static class Message {

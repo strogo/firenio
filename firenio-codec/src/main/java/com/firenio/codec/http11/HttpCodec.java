@@ -520,7 +520,6 @@ public class HttpCodec extends ProtocolCodec {
         if (write_size > 0) {
             if (write_size > com_threshold) {
                 if (is_array) {
-                    buf.writeBytes(content_array);
                     content_buf = ByteBuf.wrap(content_array);
                 }
                 if (inline) {

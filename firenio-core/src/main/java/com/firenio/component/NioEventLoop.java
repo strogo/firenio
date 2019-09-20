@@ -107,7 +107,7 @@ public abstract class NioEventLoop extends EventLoop {
     private static void channel_idle(ChannelIdleListener l, Channel ch, long lastIdleTime, long currentTime) {
         try {
             l.channelIdled(ch, lastIdleTime, currentTime);
-        } catch (Exception e) {
+        } catch (Throwable e) {
             logger.error(e.getMessage(), e);
         }
     }
@@ -522,7 +522,7 @@ public abstract class NioEventLoop extends EventLoop {
                         selectedKeysField.set(selector, keySet);
                         publicSelectedKeysField.set(selector, keySet);
                         return null;
-                    } catch (Exception e) {
+                    } catch (Throwable e) {
                         return e;
                     }
                 }
@@ -609,7 +609,7 @@ public abstract class NioEventLoop extends EventLoop {
                     public void run() {
                         try {
                             register_channel(ch, targetEL, acceptor, true);
-                        } catch (IOException e) {
+                        } catch (Throwable e) {
                             logger.error(e.getMessage(), e);
                         }
                     }
@@ -707,7 +707,7 @@ public abstract class NioEventLoop extends EventLoop {
         int select(long timeout) {
             try {
                 return selector.select(timeout);
-            } catch (IOException e) {
+            } catch (Throwable e) {
                 debugException(logger, e);
                 return 0;
             }
@@ -717,7 +717,7 @@ public abstract class NioEventLoop extends EventLoop {
         int select_now() {
             try {
                 return selector.selectNow();
-            } catch (IOException e) {
+            } catch (Throwable e) {
                 debugException(logger, e);
                 return 0;
             }

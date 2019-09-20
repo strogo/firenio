@@ -15,7 +15,6 @@
  */
 package com.firenio.component;
 
-import java.io.Closeable;
 import java.io.IOException;
 import java.lang.reflect.Field;
 import java.net.InetSocketAddress;
@@ -53,7 +52,7 @@ import static com.firenio.common.Util.unknownStackTrace;
 
 
 //请勿使用remote.getRemoteHost(),可能出现阻塞
-public abstract class Channel extends AttributeMap implements Runnable, Closeable {
+public abstract class Channel extends AttributeMap implements Runnable, AutoCloseable {
 
     public static final InetSocketAddress ERROR_SOCKET_ADDRESS  = new InetSocketAddress(0);
     public static final Logger            logger                = NEW_LOGGER();
@@ -197,7 +196,7 @@ public abstract class Channel extends AttributeMap implements Runnable, Closeabl
                 final Channel ch = Channel.this;
                 try {
                     ch.getIoEventHandle().accept(ch, f);
-                } catch (Exception e) {
+                } catch (Throwable e) {
                     ch.getIoEventHandle().exceptionCaught(ch, f, e);
                 }
             }
@@ -210,7 +209,7 @@ public abstract class Channel extends AttributeMap implements Runnable, Closeabl
     private void accept_line(IoEventHandle handle, Frame frame) {
         try {
             handle.accept(this, frame);
-        } catch (Exception e) {
+        } catch (Throwable e) {
             exception_caught(frame, e);
         }
     }
@@ -268,7 +267,7 @@ public abstract class Channel extends AttributeMap implements Runnable, Closeabl
                     ByteBuf out = wrap(ByteBuf.empty());
                     write_bufs.offer(out);
                     write();
-                } catch (Exception e) {
+                } catch (Throwable e) {
                     debugException(logger, e);
                 }
             }
@@ -278,7 +277,7 @@ public abstract class Channel extends AttributeMap implements Runnable, Closeabl
                     OpenSslHelper.setOpensslEngineReceivedShutdown(ssl_engine);
                 }
                 ssl_engine.closeInbound();
-            } catch (Exception e) {
+            } catch (Throwable e) {
                 debugException(logger, e);
             }
         }
@@ -288,7 +287,7 @@ public abstract class Channel extends AttributeMap implements Runnable, Closeabl
         return codec.encode(this, frame);
     }
 
-    private void exception_caught(Frame frame, Exception ex) {
+    private void exception_caught(Frame frame, Throwable ex) {
         try {
             getIoEventHandle().exceptionCaught(this, frame, ex);
         } catch (Throwable e) {
@@ -310,7 +309,7 @@ public abstract class Channel extends AttributeMap implements Runnable, Closeabl
             ChannelEventListener l = ls.get(i);
             try {
                 l.channelClosed(this);
-            } catch (Exception e) {
+            } catch (Throwable e) {
                 logger.error(e.getMessage(), e);
             }
         }
@@ -323,7 +322,7 @@ public abstract class Channel extends AttributeMap implements Runnable, Closeabl
             ChannelEventListener l = ls.get(i);
             try {
                 l.channelOpened(this);
-            } catch (Exception e) {
+            } catch (Throwable e) {
                 logger.error(e.getMessage(), e);
                 Util.close(this);
                 return;
@@ -373,10 +372,7 @@ public abstract class Channel extends AttributeMap implements Runnable, Closeabl
             if (codec == null) {
                 throw new IllegalArgumentException("codec not found");
             }
-            //FIXME .. is this work?
-            synchronized (this) {
-                this.codec = codec;
-            }
+            this.codec = codec;
         }
     }
 
@@ -927,7 +923,7 @@ public abstract class Channel extends AttributeMap implements Runnable, Closeabl
                 ByteBuf old = buf;
                 try {
                     buf = wrap(old);
-                } catch (Exception e) {
+                } catch (Throwable e) {
                     debugException(logger, e);
                 } finally {
                     old.release();
@@ -1154,7 +1150,7 @@ public abstract class Channel extends AttributeMap implements Runnable, Closeabl
         private int native_write(ByteBuffer src) {
             try {
                 return channel.write(src);
-            } catch (IOException e) {
+            } catch (Throwable e) {
                 return -1;
             }
         }
@@ -1162,7 +1158,7 @@ public abstract class Channel extends AttributeMap implements Runnable, Closeabl
         private long native_write(ByteBuffer[] srcs, int len) {
             try {
                 return channel.write(srcs, 0, len);
-            } catch (IOException e) {
+            } catch (Throwable e) {
                 return -1;
             }
         }
@@ -1171,7 +1167,7 @@ public abstract class Channel extends AttributeMap implements Runnable, Closeabl
         int native_read(ByteBuf dst) {
             try {
                 return channel.read(dst.nioWriteBuffer());
-            } catch (IOException e) {
+            } catch (Throwable e) {
                 return -1;
             }
         }
