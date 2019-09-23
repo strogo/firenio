@@ -16,9 +16,9 @@
 package com.firenio.collection;
 
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * use for static variable, eg:
@@ -26,11 +26,10 @@ import java.util.concurrent.atomic.AtomicInteger;
  * static final AttributeKey KEY_NAME = AttributeMap.valueOfKey(Channel.class, "KEY_NAME");
  * <pre/>
  */
+//TODO 考虑多个ChannelContext时，每个Context里Channel存储的数据key不一样，会造成内存浪费
 public abstract class AttributeMap {
 
-    private static final Object[]                  EMPTY_ATTRIBUTES = new Object[0];
-    private static final int                       DEFAULT_CAP      = 4;
-    private static final Map<Class, AttributeKeys> INDEX_MAPPING    = new ConcurrentHashMap<>();
+    private static final Map<Class<?>, AttributeKeys> INDEX_MAPPING = new ConcurrentHashMap<>();
 
     private final Object[] attributes;
 
@@ -41,53 +40,28 @@ public abstract class AttributeMap {
             return;
         }
         keys.initialized = true;
-        int keys_count = keys.index_counter.get();
-        if (keys_count == 0) {
-            attributes = null;
-        } else {
-            this.attributes = new Object[keys_count];
-            for (AttributeKey key : keys.keys.values()) {
-                AttributeInitFunction function = key.getFunction();
-                if (function != null) {
-                    setValue(key, function.initialize());
-                }
-            }
+        this.attributes = new Object[keys.getCounter()];
+        for (AttributeKey key : keys.keys.values()) {
+            AttributeInitFunction function = key.getFunction();
+            function.setValue(this, key.getIndex());
         }
     }
 
-    public <T> T getValue(AttributeKey<T> key) {
+    public <T> T getAttribute(AttributeKey<T> key) {
         return (T) attributes[key.getIndex()];
     }
 
-    public void setValue(AttributeKey key, Object value) {
+    public Object getAttribute(int key) {
+        return attributes[key];
+    }
+
+    public void setAttribute(AttributeKey key, Object value) {
         attributes[key.getIndex()] = value;
     }
 
-    //        public <T> T getValue(AttributeKey<T> key) {
-    //        int      index      = key.getIndex();
-    //        Object[] attributes = this.attributes;
-    //        if (index < attributes.length) {
-    //            return (T) attributes[index];
-    //        } else {
-    //            return null;
-    //        }
-    //    }
-    //
-    //    public void setValue(AttributeKey key, Object value) {
-    //        int      index      = key.getIndex();
-    //        Object[] attributes = this.attributes;
-    //        if (index < attributes.length) {
-    //            attributes[index] = value;
-    //        } else {
-    //            expand_and_set(index, value);
-    //        }
-    //    }
-    //
-    //    private void expand_and_set(int index, Object value) {
-    //        int new_cap = Math.max(DEFAULT_CAP, index + 1);
-    //        this.attributes = Arrays.copyOf(attributes, new_cap);
-    //        this.attributes[index] = value;
-    //    }
+    public void setAttribute(int key, Object value) {
+        attributes[key] = value;
+    }
 
     public static AttributeKeys getKeys(Class clazz) {
         return INDEX_MAPPING.get(clazz);
@@ -115,40 +89,42 @@ public abstract class AttributeMap {
 
     public static class AttributeKeys {
 
-        final    AtomicInteger             index_counter = new AtomicInteger();
-        final    Map<String, AttributeKey> keys          = new ConcurrentHashMap<>();
-        final    Map<String, AttributeKey> ro_keys       = Collections.unmodifiableMap(keys);
-        volatile boolean                   initialized   = false;
+        final Map<String, AttributeKey> keys    = new HashMap<>();
+        final Map<String, AttributeKey> ro_keys = Collections.unmodifiableMap(keys);
 
-        AttributeKey valueOf(String name, AttributeInitFunction function) {
+        int counter = 0;
+        volatile boolean initialized = false;
+
+        synchronized AttributeKey valueOf(String name, AttributeInitFunction function) {
             if (initialized) {
                 throw new RuntimeException("incorrect usage, AttributeKey can only be static constant");
             }
-            AttributeKey key = keys.get(name);
-            if (key == null) {
-                synchronized (keys) {
-                    key = keys.get(name);
-                    if (key == null) {
-                        int index = index_counter.getAndIncrement();
-                        key = new AttributeKey(index, name, function);
-                        keys.put(name, key);
-                    }
-                }
+            if (function == null) {
+                function = NULL_VALUE_ATTRIBUTE_INIT_FUNCTION;
             }
-            return key;
+            keys.put(name, new AttributeKey(counter++, name, function));
+            return keys.get(name);
         }
 
         public Map<String, AttributeKey> getKeys() {
             return ro_keys;
         }
 
-    }
-
-    public interface AttributeInitFunction<T> {
-
-        T initialize();
+        public int getCounter() {
+            return counter;
+        }
 
     }
 
+    public interface AttributeInitFunction {
+
+        void setValue(AttributeMap map, int key);
+
+    }
+
+    static final AttributeInitFunction NULL_VALUE_ATTRIBUTE_INIT_FUNCTION = new AttributeInitFunction() {
+        @Override
+        public void setValue(AttributeMap map, int key) { }
+    };
 
 }

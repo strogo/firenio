@@ -23,7 +23,6 @@ import java.util.Map;
 import com.firenio.Develop;
 import com.firenio.buffer.ByteBuf;
 import com.firenio.collection.AttributeKey;
-import com.firenio.collection.AttributeMap;
 import com.firenio.collection.ByteTree;
 import com.firenio.collection.IntMap;
 import com.firenio.collection.Stack;
@@ -45,14 +44,14 @@ public class HttpCodec extends ProtocolCodec {
     static final int                         decode_state_complete = 3;
     static final int                         decode_state_header   = 1;
     static final int                         decode_state_line_one = 0;
-    static final AttributeKey<Stack<Object>> FRAME_CACHE_KEY       = nio_el_key("http_frame_cache_key");
+    static final AttributeKey<Stack<Object>> FRAME_CACHE_KEY       = NioEventLoop.valueOfKey("http_frame_cache_key");
     static final byte                        N                     = '\n';
     static final IOException                 OVER_LIMIT            = EXCEPTION("over writeIndex");
     static final IOException                 ILLEGAL_METHOD        = EXCEPTION("illegal http method");
     static final byte                        R                     = '\r';
     static final byte                        SPACE                 = ' ';
-    static final int                         NUM_GET               = ByteUtil.getInt("GET ".getBytes(), 0);
-    static final int                         NUM_POST              = ByteUtil.getInt("POST".getBytes(), 0);
+    static final int                         NUM_GET               = ByteUtil.getIntLE("GET ".getBytes(), 0);
+    static final int                         NUM_POST              = ByteUtil.getIntLE("POST".getBytes(), 0);
 
     private final int        blimit;
     private final byte[][]   cl_bytes = new byte[1024][];
@@ -247,7 +246,7 @@ public class HttpCodec extends ProtocolCodec {
                 h_len += (l_end - abs_pos);
                 decode_state = decode_state_header;
                 int url_start = abs_pos;
-                int num       = src.getInt(abs_pos);
+                int num       = src.getIntLE(abs_pos);
                 if (num == NUM_GET) {
                     f.setMethod(HttpMethod.GET);
                     url_start += 4;
@@ -594,10 +593,11 @@ public class HttpCodec extends ProtocolCodec {
     }
 
     protected void parse_line_one(HttpFrame f, CharSequence line) throws IOException {
-        if (line.charAt(0) == 'G' && line.charAt(1) == 'E' && line.charAt(2) == 'T') {
+        int v = (line.charAt(0) << 0) | (line.charAt(1) << 8) | (line.charAt(2) << 16) | (line.charAt(3) << 24);
+        if (v == NUM_GET) {
             f.setMethod(HttpMethod.GET);
             parse_url(f, 4, line);
-        } else if (line.charAt(0) == 'P' && line.charAt(1) == 'O' && line.charAt(2) == 'S' && line.charAt(3) == 'T') {
+        } else if (v == NUM_POST) {
             f.setMethod(HttpMethod.POST);
             parse_url(f, 5, line);
         } else {

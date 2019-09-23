@@ -23,9 +23,9 @@ import java.util.HashMap;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import com.firenio.buffer.ByteBuf;
+import com.firenio.collection.AttributeKey;
 import com.firenio.collection.AttributeMap;
 import com.firenio.common.Util;
 
@@ -34,8 +34,7 @@ import com.firenio.common.Util;
  */
 public final class FastThreadLocal extends AttributeMap {
 
-    private static final AtomicInteger                indexedVarsIndex = new AtomicInteger(0);
-    private static final ThreadLocal<FastThreadLocal> slowThreadLocal  = new ThreadLocal<>();
+    private static final ThreadLocal<FastThreadLocal> slowThreadLocal = new ThreadLocal<>();
 
     private byte[]                       bytes32         = new byte[32];
     private Map<Charset, CharsetDecoder> charsetDecoders = new IdentityHashMap<>();
@@ -73,6 +72,14 @@ public final class FastThreadLocal extends AttributeMap {
             }
             return l;
         }
+    }
+
+    public static AttributeKey valueOfKey(String name) {
+        return AttributeMap.valueOfKey(FastThreadLocal.class, name);
+    }
+
+    public static AttributeKey valueOfKey(String name, AttributeInitFunction function) {
+        return AttributeMap.valueOfKey(FastThreadLocal.class, name, function);
     }
 
     private void destroy0() {

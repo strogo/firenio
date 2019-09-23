@@ -162,7 +162,7 @@ public abstract class ByteBuf implements Releasable {
 
     public abstract int capacity();
 
-    public abstract void collation();
+    public abstract void compact();
 
     protected void capacity(int cap) {}
 

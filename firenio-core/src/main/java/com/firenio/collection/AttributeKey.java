@@ -26,9 +26,9 @@ public final class AttributeKey<T> {
 
     private final String name;
 
-    private final AttributeInitFunction<T> function;
+    private final AttributeInitFunction function;
 
-    AttributeKey(int index, String name, AttributeInitFunction<T> function) {
+    AttributeKey(int index, String name, AttributeInitFunction function) {
         this.name = name;
         this.index = index;
         this.function = function;
@@ -42,7 +42,7 @@ public final class AttributeKey<T> {
         return name;
     }
 
-    public AttributeInitFunction<T> getFunction() {
+    public AttributeInitFunction getFunction() {
         return function;
     }
 

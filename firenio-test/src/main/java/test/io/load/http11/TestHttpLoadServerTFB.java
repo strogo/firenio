@@ -92,7 +92,7 @@ public class TestHttpLoadServerTFB {
                     f.setContentType(HttpContentType.text_plain);
                     f.setConnection(HttpConnection.NONE);
                 } else if ("/json".equals(action)) {
-                    ByteBuf    temp   = FastThreadLocal.get().getValue(JSON_BUF);
+                    ByteBuf    temp   = FastThreadLocal.get().getAttribute(JSON_BUF);
                     JsonStream stream = JsonStreamPool.borrowJsonStream();
                     try {
                         stream.reset(null);
@@ -170,7 +170,7 @@ public class TestHttpLoadServerTFB {
     }
 
     static AttributeKey<ByteBuf> newByteBufKey() {
-        return AttributeMap.valueOfKey(FastThreadLocal.class, "JSON_BUF", () -> ByteBuf.heap(0));
+        return FastThreadLocal.valueOfKey("JSON_BUF", (AttributeMap map, int key) -> map.setAttribute(key, ByteBuf.heap(0)));
     }
 
     static class Message {

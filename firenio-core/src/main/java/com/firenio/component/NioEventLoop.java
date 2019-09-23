@@ -43,6 +43,7 @@ import com.firenio.buffer.ByteBufAllocator;
 import com.firenio.collection.ArrayListStack;
 import com.firenio.collection.AttributeKey;
 import com.firenio.collection.AttributeMap;
+import com.firenio.collection.AttributeMap.AttributeInitFunction;
 import com.firenio.collection.DelayedQueue;
 import com.firenio.collection.IntMap;
 import com.firenio.collection.LinkedBQStack;
@@ -73,7 +74,7 @@ public abstract class NioEventLoop extends EventLoop {
 
     final    ByteBufAllocator        alloc;
     final    ByteBuf                 buf;
-    final    AttributeMap            attributeMap  = new NioELAttributeMap();
+    final    AttributeMap            attributeMap  = new NioEventLoopAttributeMap();
     final    IntMap<Channel>         channels      = new IntMap<>(4096);
     final    int                     ch_size_limit;
     final    DelayedQueue            delayed_queue = new DelayedQueue();
@@ -205,7 +206,7 @@ public abstract class NioEventLoop extends EventLoop {
     }
 
     public <T> T getAttribute(AttributeKey<T> key) {
-        return attributeMap.getValue(key);
+        return attributeMap.getAttribute(key);
     }
 
     public Channel getChannel(int channelId) {
@@ -417,7 +418,7 @@ public abstract class NioEventLoop extends EventLoop {
     }
 
     public void setAttribute(AttributeKey key, Object value) {
-        this.attributeMap.setValue(key, value);
+        this.attributeMap.setAttribute(key, value);
     }
 
     public boolean submit(Runnable event) {
@@ -456,6 +457,13 @@ public abstract class NioEventLoop extends EventLoop {
 
     abstract void wakeup0();
 
+    public static AttributeKey valueOfKey(String name) {
+        return AttributeMap.valueOfKey(NioEventLoop.class, name);
+    }
+
+    public static AttributeKey valueOfKey(String name, AttributeInitFunction function) {
+        return AttributeMap.valueOfKey(NioEventLoop.class, name, function);
+    }
 
     static final class JavaEventLoop extends NioEventLoop {
 
@@ -1020,7 +1028,7 @@ public abstract class NioEventLoop extends EventLoop {
 
     }
 
-    static class NioELAttributeMap extends AttributeMap {
+    static class NioEventLoopAttributeMap extends AttributeMap {
 
         @Override
         protected AttributeKeys getKeys() {

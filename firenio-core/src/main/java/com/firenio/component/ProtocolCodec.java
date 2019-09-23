@@ -18,10 +18,7 @@ package com.firenio.component;
 import java.io.IOException;
 
 import com.firenio.buffer.ByteBuf;
-import com.firenio.collection.AttributeKey;
-import com.firenio.collection.AttributeMap;
 import com.firenio.common.Util;
-import com.firenio.concurrent.EventLoop;
 
 /**
  * @author wangkai
@@ -89,10 +86,6 @@ public abstract class ProtocolCodec {
         } else {
             // 该channel无需心跳,比如HTTP协议
         }
-    }
-
-    protected static AttributeKey nio_el_key(String name) {
-        return AttributeMap.valueOfKey(NioEventLoop.class, name);
     }
 
     protected void log_ping_from(Channel ch) {
